@@ -1,0 +1,32 @@
+# ===== Maven build output =====
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
+nbproject/
+nbbuild/
+nbdist/
+
+# ===== Log =====
+*.log
+logs/
+
+# ===== Hệ điều hành =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== File cấu hình cục bộ / bí mật (không đưa lên repo) =====
+application-local.properties
+application-local.yml
+.env
