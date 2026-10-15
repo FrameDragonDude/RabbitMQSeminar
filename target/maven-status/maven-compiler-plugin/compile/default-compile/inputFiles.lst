@@ -1,0 +1,6 @@
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\producer\OrderProducer.java
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\consumer\OrderConsumer.java
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\controller\DemoController.java
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\config\RabbitMQConfig.java
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\RabbitMQSeminarApplication.java
+Z:\VSC\Java\J2ee\RabbitMQSeminar\src\main\java\com\seminar\rabbitmq\dto\OrderMessage.java
