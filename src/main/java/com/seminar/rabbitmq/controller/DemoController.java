@@ -1,5 +1,6 @@
 package com.seminar.rabbitmq.controller;
 
+import com.seminar.rabbitmq.consumer.OrderConsumer;
 import com.seminar.rabbitmq.dto.OrderMessage;
 import com.seminar.rabbitmq.producer.OrderProducer;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,9 @@ public class DemoController {
 
     @Autowired
     private OrderProducer producer;
+
+    @Autowired
+    private OrderConsumer consumer;
 
     @Operation(summary = "1 & 2. Gửi đơn hàng (Direct Exchange & DLQ)", 
                description = "Gửi tin qua Direct Exchange. Nếu error=false sẽ xử lý thành công. Nếu error=true sẽ giả lập exception, retry 3 lần và chuyển vào DLQ.")
@@ -37,5 +41,37 @@ public class DemoController {
             @RequestParam(defaultValue = "Hệ thống bảo trì lúc 00:00") String msg) {
         producer.sendBroadcast(msg);
         return "Đã gửi broadcast: " + msg;
+    }
+
+    @Operation(summary = "4. Bắn liên tiếp nhiều đơn hàng (Test dồn hàng đợi)", 
+               description = "Gửi dồn dập N đơn hàng vào queue để quan sát số lượng tin tồn đọng và tốc độ tiêu thụ trên Dashboard.")
+    @GetMapping("/bulk-orders")
+    public String sendBulkOrders(@RequestParam(defaultValue = "10") int count) {
+        for (int i = 1; i <= count; i++) {
+            String code = "BULK_" + (100 + i);
+            producer.sendOrder(new OrderMessage(code, 50000.0, false));
+        }
+        return "Đã bắn dồn dập " + count + " đơn hàng vào queue! Hãy nhìn RabbitMQ Dashboard để thấy hàng đợi xếp hàng.";
+    }
+
+    @Operation(summary = "5. Tạm dừng Consumer (Giả lập Service bị chết)", 
+               description = "Khi tạm dừng, các đơn hàng bắn vào sẽ bị dồn ứ lại trong queue để người thuyết minh tha hồ giải thích.")
+    @PostMapping("/pause-consumer")
+    public String pauseConsumer() {
+        consumer.setPaused(true);
+        return "ĐÃ TẠM DỪNG CONSUMER! Bây giờ bạn bắn bao nhiêu đơn vào thì tin nhắn cũng sẽ NẰM YÊN trong hàng đợi để bạn chỉ tay giải thích.";
+    }
+
+    @Operation(summary = "6. Bật lại Consumer (Service sống lại và giải phóng tin)", 
+               description = "Khởi động lại Consumer để bắt đầu lấy các tin đang dồn ứ ra xử lý dần.")
+    @PostMapping("/resume-consumer")
+    public String resumeConsumer() {
+        consumer.setPaused(false);
+        return "ĐÃ BẬT LẠI CONSUMER! Hệ thống đang bắt đầu rút dần các đơn hàng tồn đọng trong queue.";
+    }
+
+    @GetMapping("/consumer-status")
+    public boolean getConsumerStatus() {
+        return consumer.isPaused();
     }
 }
