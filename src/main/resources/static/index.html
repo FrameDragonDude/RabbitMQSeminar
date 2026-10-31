@@ -2,498 +2,376 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RabbitMQ Seminar - Trung Tâm Điều Phối & Demo Trực Quan</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --rabbitmq-orange: #FF6600;
-            --rabbitmq-dark: #1E2325;
-        }
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-        
-        /* Pipeline Visual Box */
-        .pipeline-container {
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 24px;
-            border: 2px solid #334155;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        }
-        .pipeline-node {
-            background: #0f172a;
-            border: 2px solid #475569;
-            border-radius: 12px;
-            padding: 16px 12px;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .pipeline-node.active-success {
-            border-color: #22c55e !important;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
-            transform: scale(1.05);
-        }
-        .pipeline-node.active-error {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
-            transform: scale(1.05);
-        }
-        .pipeline-node.active-fanout {
-            border-color: #06b6d4 !important;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.6);
-            transform: scale(1.05);
-        }
-        .pipeline-node.active-paused {
-            border-color: #f59e0b !important;
-            box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
-            background: #451a03 !important;
-        }
-        
-        .arrow-icon {
-            font-size: 28px;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Giant Status Banner */
-        .giant-status {
-            background: #1e293b;
-            border-left: 8px solid #3b82f6;
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 1.25rem;
-            min-height: 85px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        /* Action Buttons */
-        .btn-action {
-            font-size: 1.1rem;
-            font-weight: 700;
-            padding: 12px 18px;
-            border-radius: 10px;
-            transition: all 0.2s;
-        }
-        .btn-action:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-        }
-
-        /* Live Console */
-        .console-box {
-            background-color: #020617;
-            color: #e2e8f0;
-            font-family: 'Consolas', monospace;
-            border-radius: 12px;
-            padding: 16px;
-            height: 280px;
-            overflow-y: auto;
-            border: 1px solid #1e293b;
-            font-size: 0.95rem;
-        }
-        .console-item {
-            padding: 6px 0;
-            border-bottom: 1px solid #1e293b;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RabbitMQ Demo</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="vendor/nunito/nunito.css">
+    <link rel="stylesheet" href="css/app.css">
 </head>
-<body class="p-4">
+<body>
 
-<div class="container-fluid" style="max-width: 1400px;">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
-        <div class="d-flex align-items-center gap-3">
-            <span class="fs-1">🐰</span>
-            <div>
-                <h2 class="fw-bold mb-0 text-white">TRUNG TÂM ĐIỀU PHỐI & DEMO THỰC NGHIỆM RABBITMQ</h2>
-                <span class="text-secondary">Môn học: Seminar J2EE & Kiến trúc Phân tán | Người điều phối: <strong class="text-warning">Ân</strong></span>
-            </div>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="http://localhost:15672/#/queues" target="_blank" class="btn btn-warning fw-bold px-3">
-                <i class="bi bi-speedometer2 me-1"></i> Mở RabbitMQ Queues (:15672)
-            </a>
-            <a href="/swagger-ui/index.html" target="_blank" class="btn btn-outline-info fw-bold px-3">
-                <i class="bi bi-code-slash me-1"></i> Swagger UI (:8080)
-            </a>
-        </div>
+<!-- ================= Sidebar ================= -->
+<aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-icon"><i class="bi bi-hdd-network"></i></span>
+        <span class="brand-text">RABBITMQ DEMO</span>
     </div>
 
-    <!-- SƠ ĐỒ DÒNG CHẢY TRỰC QUAN (VISUAL PIPELINE) -->
-    <div class="pipeline-container mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-uppercase text-info mb-0">
-                <i class="bi bi-diagram-3-fill me-2"></i>Mô Phỏng Dòng Chảy Tin Nhắn (Visual Message Flow)
-            </h5>
-            <span id="consumerBadgeStatus" class="badge bg-success px-3 py-2">Trạng thái Consumer: ĐANG HOẠT ĐỘNG (Xử lý 2s/đơn)</span>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Kịch bản demo</div>
+        <a class="nav-item" href="#" data-scenario="direct"><i class="bi bi-signpost-split"></i><span>Direct exchange</span></a>
+        <a class="nav-item" href="#" data-scenario="idempotency"><i class="bi bi-shield-check"></i><span>Chống xử lý trùng</span></a>
+        <a class="nav-item" href="#" data-scenario="dlq"><i class="bi bi-exclamation-octagon"></i><span>Retry &amp; DLQ</span></a>
+        <a class="nav-item" href="#" data-scenario="fanout"><i class="bi bi-broadcast"></i><span>Fanout exchange</span></a>
+        <a class="nav-item" href="#" data-scenario="bulk"><i class="bi bi-stack"></i><span>San tải hàng loạt</span></a>
+        <a class="nav-item" href="#" data-scenario="consumer"><i class="bi bi-power"></i><span>Dừng / bật consumer</span></a>
+
+        <div class="nav-section">Công cụ</div>
+        <a class="nav-item" href="#" data-scenario="tools"><i class="bi bi-tools"></i><span>Dọn dữ liệu demo</span></a>
+        <a class="nav-item" href="architecture-diagram.svg" target="_blank" rel="noopener"><i class="bi bi-diagram-3"></i><span>Sơ đồ kiến trúc</span><i class="bi bi-box-arrow-up-right nav-external"></i></a>
+        <a class="nav-item" href="http://localhost:15672/#/queues" target="_blank" rel="noopener"><i class="bi bi-speedometer2"></i><span>Management UI</span><i class="bi bi-box-arrow-up-right nav-external"></i></a>
+        <a class="nav-item" href="/swagger-ui/index.html" target="_blank" rel="noopener"><i class="bi bi-code-slash"></i><span>Swagger UI</span><i class="bi bi-box-arrow-up-right nav-external"></i></a>
+    </nav>
+
+    <div class="sidebar-footer">Spring Boot 3.2 · Spring AMQP</div>
+</aside>
+<div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+<!-- ================= Main ================= -->
+<div class="main">
+    <header class="topbar">
+        <button id="btnSidebar" class="icon-btn d-lg-none" type="button" aria-label="Mở menu"><i class="bi bi-list"></i></button>
+        <div class="crumb">Bảng điều khiển / <span id="crumbCurrent">Direct exchange</span></div>
+        <div class="topbar-right">
+            <span id="connection" class="conn-pill"><span class="dot"></span><span id="connectionText">Đang kết nối…</span></span>
+            <span class="broker-chip d-none d-md-inline-flex"><i class="bi bi-hdd-rack"></i> localhost:5672</span>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <!-- Cảnh báo queue cũ -->
+        <div id="legacyAlert" class="alert-card" hidden>
+            <span class="alert-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            <div class="flex-grow-1">
+                <div class="fw-bold">Phát hiện queue cũ <code>notification.queue</code> (<span id="legacyCount">0</span> tin)</div>
+                <div class="small">Queue của phiên bản trước vẫn bind với fanout exchange nhưng không có consumer, tin sẽ dồn mãi.</div>
+            </div>
+            <button class="btn-x btn-danger-x" type="button" data-action="delete-legacy"><i class="bi bi-trash3"></i> Xoá queue cũ</button>
         </div>
 
-        <div class="row g-2 align-items-center">
-            <!-- 1. Producer -->
-            <div class="col-md-2">
-                <div id="nodeProducer" class="pipeline-node">
-                    <i class="bi bi-send-fill fs-2 text-primary"></i>
-                    <div class="fw-bold mt-2">1. PRODUCER</div>
-                    <small class="text-secondary d-block">Spring REST API</small>
-                </div>
-            </div>
-
-            <div class="col-md-1 text-center"><i class="bi bi-arrow-right-short arrow-icon"></i></div>
-
-            <!-- 2. Exchange -->
-            <div class="col-md-3">
-                <div id="nodeExchange" class="pipeline-node">
-                    <i class="bi bi-shuffle fs-2 text-warning"></i>
-                    <div class="fw-bold mt-2">2. EXCHANGES</div>
-                    <span id="exchangeLabel" class="badge bg-secondary">Chờ lệnh...</span>
-                </div>
-            </div>
-
-            <div class="col-md-1 text-center"><i class="bi bi-arrow-right-short arrow-icon"></i></div>
-
-            <!-- 3. Queue -->
-            <div class="col-md-3">
-                <div id="nodeQueue" class="pipeline-node">
-                    <i class="bi bi-inboxes-fill fs-2 text-success"></i>
-                    <div class="fw-bold mt-2">3. QUEUES (BỘ ĐỆM)</div>
-                    <span id="queueLabel" class="badge bg-secondary">order.queue</span>
-                </div>
-            </div>
-
-            <div class="col-md-1 text-center"><i class="bi bi-arrow-right-short arrow-icon"></i></div>
-
-            <!-- 4. Consumer / DLQ -->
-            <div class="col-md-2">
-                <div id="nodeConsumer" class="pipeline-node">
-                    <i id="consumerIcon" class="bi bi-cpu-fill fs-2 text-info"></i>
-                    <div id="consumerTitle" class="fw-bold mt-2">4. CONSUMER</div>
-                    <small id="consumerSub" class="text-secondary d-block">Xử lý ngầm</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BANNER TRẠNG THÁI KHỔ LỚN DÀNH CHO KHÁN GIẢ -->
-    <div id="giantStatusBanner" class="giant-status mb-4">
-        <i class="bi bi-info-circle-fill text-primary fs-2 me-3"></i>
-        <div id="giantStatusText" class="fw-bold">
-            Hệ thống đã sẵn sàng. Bạn có thể tạm dừng Consumer để dồn tin, hoặc bấm các nút bên dưới để demo.
-        </div>
-    </div>
-
-    <!-- KHU VỰC CÔNG TẮC GIẢ LẬP SERVICE CHẾT / SỐNG (TÍNH NĂNG ĐINH) -->
-    <div class="card bg-dark border-warning p-3 mb-4 shadow">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h5 class="text-warning fw-bold mb-1">
-                    <i class="bi bi-toggles2 me-2"></i>Kịch Bản 4: Mô Phỏng Consumer Bị Sập & Phục Hồi (Tính Chịu Lỗi - Resilience)
-                </h5>
-                <small class="text-secondary">Tạm dừng Consumer ➔ Bắn đơn ➔ Tin nhắn nằm im trong Queue để bạn tha hồ chỉ tay giải thích trên máy chiếu!</small>
-            </div>
-            <div class="col-md-6 d-flex gap-2 justify-content-end">
-                <button id="btnPause" class="btn btn-outline-danger fw-bold px-3 py-2" onclick="togglePause(true)">
-                    <i class="bi bi-pause-circle-fill me-1"></i> 1. TẠM DỪNG CONSUMER (Giả lập Service sập)
-                </button>
-                <button id="btnResume" class="btn btn-outline-success fw-bold px-3 py-2" onclick="togglePause(false)">
-                    <i class="bi bi-play-circle-fill me-1"></i> 2. KHÔI PHỤC CONSUMER (Service sống lại)
+        <!-- Thẻ thống kê -->
+        <section class="row g-4 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <button class="stat-card" type="button" data-scenario="consumer">
+                    <div class="stat-body">
+                        <div class="stat-label">Consumer</div>
+                        <div id="statConsumer" class="stat-value stat-value-text">—</div>
+                        <div class="stat-hint"><i class="bi bi-lightning-charge-fill"></i> prefetch = 1</div>
+                    </div>
+                    <span id="statConsumerIcon" class="stat-icon icon-primary"><i class="bi bi-cpu"></i></span>
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- CÁC NÚT ĐIỀU KHIỂN & CONSOLE LOG -->
-    <div class="row g-4">
-        <!-- Cột Trái: Các Nút Kịch Bản -->
-        <div class="col-lg-6">
-            <!-- Nút 1: Đơn Thường -->
-            <div class="card bg-dark border-success mb-3 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="text-success fw-bold mb-0">1. Direct Exchange (Đơn hàng bình thường)</h5>
-                    <span class="badge bg-success-subtle text-success">Khóa: order.created</span>
-                </div>
-                <p class="text-secondary small mb-3">Consumer giữ và xử lý trong 2 giây (Dashboard hiện Unacked = 1) rồi mới xác nhận ACK xóa tin.</p>
-                <button class="btn btn-success btn-action w-100" onclick="sendOrder(false)">
-                    <i class="bi bi-check-circle-fill me-2"></i> BẮN 1 ĐƠN HÀNG THÀNH CÔNG
+            <div class="col-sm-6 col-xl-3">
+                <button class="stat-card" type="button" data-scenario="direct">
+                    <div class="stat-body">
+                        <div class="stat-label">Đã xử lý</div>
+                        <div class="stat-value"><span id="statProcessed">0</span><small>đơn</small></div>
+                        <div class="stat-hint"><i class="bi bi-check-circle-fill"></i> Mỗi mã tính 1 lần</div>
+                    </div>
+                    <span class="stat-icon icon-primary"><i class="bi bi-receipt"></i></span>
                 </button>
             </div>
-
-            <!-- Nút 2: Bắn Hàng Loạt (Tùy Chọn 50, 100, 500, 1000 Đơn) -->
-            <div class="card bg-dark border-warning mb-3 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="text-warning fw-bold mb-0">2. Bulk Stress Test (Thử tải hàng loạt)</h5>
-                    <span class="badge bg-warning text-dark">San tải (Load Leveling)</span>
-                </div>
-                <p class="text-secondary small mb-2">Bắn dồn dập số lượng lớn đơn hàng vào Broker. Bạn có thể chọn nhanh hoặc tự gõ số lượng (50, 100, 500, 1000 đơn):</p>
-                
-                <div class="input-group mb-2">
-                    <span class="input-group-text bg-secondary text-white border-0 fw-bold">Số lượng đơn:</span>
-                    <input type="number" id="bulkCountInput" class="form-control bg-dark text-white border-secondary fw-bold" value="100" min="5" max="5000">
-                    <button class="btn btn-warning text-dark fw-bold px-3" onclick="sendCustomBulk()">
-                        <i class="bi bi-rocket-takeoff-fill me-1"></i> BẮN NGAY
-                    </button>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-warning w-100" onclick="setAndSendBulk(50)">+50 Đơn</button>
-                    <button class="btn btn-sm btn-outline-warning w-100" onclick="setAndSendBulk(100)">+100 Đơn</button>
-                    <button class="btn btn-sm btn-outline-warning w-100" onclick="setAndSendBulk(500)">+500 Đơn</button>
-                    <button class="btn btn-sm btn-outline-warning w-100" onclick="setAndSendBulk(1000)">+1000 Đơn</button>
-                </div>
-            </div>
-
-            <!-- Nút 3: Đơn Lỗi DLQ -->
-            <div class="card bg-dark border-danger mb-3 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="text-danger fw-bold mb-0">3. DLQ & Retry (Giả lập đơn lỗi)</h5>
-                    <span class="badge bg-danger">Hàng đợi chết: order.dlq</span>
-                </div>
-                <p class="text-secondary small mb-3">Consumer giả lập ném Exception. Hệ thống tự động Retry đúng 3 lần rồi đẩy sang <code>order.dlq</code>.</p>
-                <button class="btn btn-danger btn-action w-100" onclick="sendOrder(true)">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> GỬI ĐƠN LỖI (KÍCH HOẠT RETRY 3 LẦN ➔ DLQ)
+            <div class="col-sm-6 col-xl-3">
+                <button class="stat-card" type="button" data-scenario="idempotency">
+                    <div class="stat-body">
+                        <div class="stat-label">Tin trùng</div>
+                        <div class="stat-value"><span id="statDuplicates">0</span><small>tin</small></div>
+                        <div class="stat-hint"><i class="bi bi-shield-fill-check"></i> Không xử lý lại</div>
+                    </div>
+                    <span class="stat-icon icon-primary"><i class="bi bi-shield-check"></i></span>
                 </button>
             </div>
-
-            <!-- Nút 4: Fanout Broadcast -->
-            <div class="card bg-dark border-info p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="text-info fw-bold mb-0">4. Fanout Exchange (Phát thanh Broadcast)</h5>
-                    <span class="badge bg-info text-dark">Không cần Routing Key</span>
-                </div>
-                <p class="text-secondary small mb-3">Gửi 1 thông điệp đến tất cả các Queue đăng ký nhận tin cùng một thời điểm.</p>
-                <button class="btn btn-info text-dark btn-action w-100" onclick="sendBroadcast()">
-                    <i class="bi bi-broadcast me-2"></i> PHÁT THÔNG BÁO TOÀN HỆ THỐNG
+            <div class="col-sm-6 col-xl-3">
+                <button class="stat-card" type="button" data-scenario="dlq">
+                    <div class="stat-body">
+                        <div class="stat-label">Trong DLQ</div>
+                        <div class="stat-value"><span id="statDlq">0</span><small>tin</small></div>
+                        <div class="stat-hint"><i class="bi bi-exclamation-triangle-fill"></i> order.dlq · x-death</div>
+                    </div>
+                    <span class="stat-icon icon-danger"><i class="bi bi-archive"></i></span>
                 </button>
             </div>
-        </div>
+        </section>
 
-        <!-- Cột Phải: Live Audit Log & Mẹo Thuyết Trình Cho Ân -->
-        <div class="col-lg-6">
-            <div class="card bg-dark border-secondary mb-3">
-                <div class="card-header bg-black text-light d-flex justify-content-between align-items-center py-2">
-                    <span class="fw-bold"><i class="bi bi-terminal-fill text-warning me-2"></i>Nhật Ký Sự Kiện Thời Gian Thực (Audit Log)</span>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="clearConsole()">Xóa Log</button>
-                </div>
-                <div class="card-body p-2">
-                    <div id="consoleLog" class="console-box">
-                        <div class="text-secondary">[HỆ THỐNG] Đã kết nối với Spring Boot & RabbitMQ Broker... Sẵn sàng demo!</div>
+        <!-- Biểu đồ + hàng đợi -->
+        <section class="row g-4 mb-4">
+            <div class="col-xl-8">
+                <div class="card-x chart-card h-100">
+                    <div class="card-x-header">
+                        <span class="card-x-icon"><i class="bi bi-bar-chart-fill"></i></span>
+                        <div>
+                            <h2 class="card-x-title">Thông lượng xử lý</h2>
+                            <div class="card-x-sub">60 giây gần nhất · mỗi cột 2 giây</div>
+                        </div>
+                        <div class="chart-legend">
+                            <span><i class="legend-dot legend-ok"></i>Thành công <b id="chartOkTotal">0</b></span>
+                            <span><i class="legend-dot legend-dlq"></i>Vào DLQ <b id="chartDlqTotal">0</b></span>
+                        </div>
+                    </div>
+                    <div class="chart">
+                        <div class="chart-y">
+                            <span id="chartMax">5</span><span id="chartMid">2</span><span>0</span>
+                        </div>
+                        <div class="chart-plot">
+                            <div class="chart-grid"><span></span><span></span><span></span></div>
+                            <div id="chartBars" class="chart-bars"></div>
+                        </div>
+                    </div>
+                    <div class="chart-x">
+                        <span>-60s</span><span>-45s</span><span>-30s</span><span>-15s</span><span>Bây giờ</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Hướng Dẫn Thao Tác Cho Người Thuyết Trình -->
-            <div class="card bg-dark border-primary p-3">
-                <h6 class="text-primary fw-bold mb-2"><i class="bi bi-lightbulb-fill me-2"></i>Mẹo Lấy Minh Chứng Điểm 10 Cho Ân:</h6>
-                <ul class="text-secondary small mb-0 ps-3">
-                    <li><strong class="text-white">Cách tạo số đứng im để tha hồ nói:</strong> Bấm <em>"TẠM DỪNG CONSUMER"</em> ➔ Bấm <em>"BẮN DỒN 10 ĐƠN"</em> ➔ Cột <code>Ready</code> sẽ hiện số 10 đứng im vĩnh viễn trên Dashboard! Bạn tha hồ chỉ tay 5 phút và chụp ảnh màn hình làm báo cáo!</li>
-                    <li><strong class="text-white">Sau khi nói xong:</strong> Bấm <em>"KHÔI PHỤC CONSUMER"</em> ➔ 10 đơn sẽ được xử lý tuần tự từ từ về 0!</li>
-                </ul>
+            <div class="col-xl-4">
+                <div class="card-x h-100">
+                    <div class="card-x-header">
+                        <span class="card-x-icon"><i class="bi bi-inboxes-fill"></i></span>
+                        <div>
+                            <h2 class="card-x-title">Hàng đợi</h2>
+                            <div class="card-x-sub">Cập nhật mỗi giây</div>
+                        </div>
+                        <span class="chip ms-auto">Ready: <b id="queueTotal">0</b></span>
+                    </div>
+                    <div id="queueBar" class="stack-bar"></div>
+                    <ul id="queueList" class="queue-list">
+                        <li class="text-muted-x">Đang tải…</li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
+
+        <!-- Kịch bản + nhật ký -->
+        <section class="row g-4">
+            <div class="col-xl-5">
+                <div class="card-x scenario-card">
+
+                    <!-- 1. Direct -->
+                    <div class="scenario-pane" data-pane="direct">
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-primary"><i class="bi bi-signpost-split"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 1</div>
+                                <h2 class="card-x-title">Direct exchange</h2>
+                            </div>
+                            <code class="tag ms-auto">order.created</code>
+                        </div>
+                        <p class="scenario-desc">Producer publish đơn với routing key <code>order.created</code>. Direct exchange so khớp
+                            chính xác key và chuyển vào <code>order.queue</code>. Consumer xử lý 2 giây rồi gửi ACK.</p>
+                        <ul class="watch-list">
+                            <li>Nhật ký: Đã publish → Đang xử lý → Xử lý xong · ACK</li>
+                            <li>Management UI: <b>Unacked = 1</b> trong 2 giây xử lý</li>
+                        </ul>
+                        <form id="formOrder" class="field-row">
+                            <div class="field">
+                                <label for="orderCode">Mã đơn</label>
+                                <input id="orderCode" class="input-x mono" maxlength="40" required>
+                            </div>
+                            <button class="btn-x btn-primary-x" type="submit"><i class="bi bi-send-fill"></i> Gửi đơn</button>
+                        </form>
+                    </div>
+
+                    <!-- 2. Idempotency -->
+                    <div class="scenario-pane" data-pane="idempotency" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-primary"><i class="bi bi-shield-check"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 2</div>
+                                <h2 class="card-x-title">Chống xử lý trùng</h2>
+                            </div>
+                            <code class="tag ms-auto">idempotent consumer</code>
+                        </div>
+                        <p class="scenario-desc">RabbitMQ giao tin <em>ít nhất một lần</em>, cùng một đơn có thể đến nhiều lần.
+                            Consumer ghi nhớ mã đơn đã xử lý: tin trùng vẫn được ACK nhưng không xử lý lại.</p>
+                        <ul class="watch-list">
+                            <li>Nhật ký: <b>Chặn tin trùng</b></li>
+                            <li>"Tin trùng đã chặn" tăng, "Đơn đã xử lý" giữ nguyên</li>
+                        </ul>
+                        <div class="btn-stack">
+                            <button class="btn-x btn-primary-x" type="button" data-action="send-twice">
+                                <i class="bi bi-files"></i> Gửi một đơn mới 2 lần liên tiếp
+                            </button>
+                            <button id="btnResend" class="btn-x btn-soft" type="button" data-action="resend" disabled>
+                                <i class="bi bi-arrow-repeat"></i> Gửi lại đơn <span id="lastOrderCode" class="mono">—</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3. Retry & DLQ -->
+                    <div class="scenario-pane" data-pane="dlq" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-danger"><i class="bi bi-exclamation-octagon"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 3</div>
+                                <h2 class="card-x-title">Retry &amp; Dead Letter Queue</h2>
+                            </div>
+                            <code class="tag ms-auto">order.dlq</code>
+                        </div>
+                        <p class="scenario-desc">Consumer ném exception. Spring Retry xử lý lại, tổng cộng 3 lần, cách nhau 1 giây.
+                            Hết lượt thì reject (requeue=false), broker chuyển tin qua <code>order.dlx.exchange</code> vào
+                            <code>order.dlq</code>.</p>
+                        <ul class="watch-list">
+                            <li>Nhật ký: thất bại lần 1/3, 2/3, 3/3 → <b>Chuyển vào DLQ</b> (khoảng 8 giây)</li>
+                            <li>Management UI → <code>order.dlq</code> → Get messages: header <code>x-death</code></li>
+                        </ul>
+                        <button class="btn-x btn-danger-x" type="button" data-action="error-order">
+                            <i class="bi bi-bug-fill"></i> Gửi đơn lỗi
+                        </button>
+                    </div>
+
+                    <!-- 4. Fanout -->
+                    <div class="scenario-pane" data-pane="fanout" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-primary"><i class="bi bi-broadcast"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 4</div>
+                                <h2 class="card-x-title">Fanout exchange</h2>
+                            </div>
+                            <code class="tag ms-auto">system.fanout.exchange</code>
+                        </div>
+                        <p class="scenario-desc">Một message được sao chép tới mọi queue bind với exchange, không cần routing key.
+                            Email, SMS và audit là 3 service độc lập, mỗi service một queue riêng.</p>
+                        <ul class="watch-list">
+                            <li>Nhật ký: 3 dòng <b>Nhận thông báo</b> từ email, sms, audit</li>
+                        </ul>
+                        <form id="formBroadcast" class="field-row">
+                            <div class="field">
+                                <label for="broadcastMessage">Nội dung thông báo</label>
+                                <input id="broadcastMessage" class="input-x" value="Hệ thống bảo trì lúc 00:00" maxlength="200" required>
+                            </div>
+                            <button class="btn-x btn-primary-x" type="submit"><i class="bi bi-broadcast"></i> Phát</button>
+                        </form>
+                    </div>
+
+                    <!-- 5. Bulk -->
+                    <div class="scenario-pane" data-pane="bulk" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-primary"><i class="bi bi-stack"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 5</div>
+                                <h2 class="card-x-title">San tải hàng loạt</h2>
+                            </div>
+                            <code class="tag ms-auto">prefetch = 1</code>
+                        </div>
+                        <p class="scenario-desc">Gửi dồn N đơn trong một lần. Queue làm bộ đệm, consumer xử lý đều đặn khoảng 10 đơn
+                            mỗi giây (100 ms/đơn), không bị quá tải.</p>
+                        <ul class="watch-list">
+                            <li>Biểu đồ thông lượng: các cột đều nhau</li>
+                            <li>Thẻ Hàng đợi: Ready của <code>order.queue</code> giảm dần</li>
+                        </ul>
+                        <form id="formBulk" class="field-row">
+                            <div class="field">
+                                <label for="bulkCount">Số đơn</label>
+                                <input id="bulkCount" type="number" class="input-x" value="100" min="1" max="5000" required>
+                            </div>
+                            <button class="btn-x btn-primary-x" type="submit"><i class="bi bi-rocket-takeoff-fill"></i> Gửi hàng loạt</button>
+                        </form>
+                        <div class="preset-row">
+                            <button class="chip-btn" type="button" data-bulk="50">50</button>
+                            <button class="chip-btn" type="button" data-bulk="100">100</button>
+                            <button class="chip-btn" type="button" data-bulk="500">500</button>
+                            <button class="chip-btn" type="button" data-bulk="1000">1000</button>
+                        </div>
+                    </div>
+
+                    <!-- 6. Consumer -->
+                    <div class="scenario-pane" data-pane="consumer" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-primary"><i class="bi bi-power"></i></span>
+                            <div>
+                                <div class="card-x-sub">Kịch bản 6</div>
+                                <h2 class="card-x-title">Consumer sập / phục hồi</h2>
+                            </div>
+                            <code class="tag ms-auto">listener container</code>
+                        </div>
+                        <p class="scenario-desc">Dừng listener giống service bị sập: consumer huỷ subscribe khỏi broker. Tin mới nằm lại
+                            ở Ready, bật lại thì được xử lý tiếp, không mất tin nào.</p>
+                        <ul class="watch-list">
+                            <li>Thẻ Hàng đợi: <code>order.queue</code> có <b>0 consumer</b>, Ready tăng</li>
+                            <li>Bật lại: Ready giảm dần về 0</li>
+                        </ul>
+                        <div class="btn-stack">
+                            <button id="btnConsumer" class="btn-x btn-dark-x" type="button" data-action="toggle-consumer">
+                                <i class="bi bi-stop-circle-fill"></i> Dừng consumer
+                            </button>
+                            <button class="btn-x btn-soft" type="button" data-action="bulk-20">
+                                <i class="bi bi-stack"></i> Gửi 20 đơn
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 7. Tools -->
+                    <div class="scenario-pane" data-pane="tools" hidden>
+                        <div class="card-x-header">
+                            <span class="scenario-icon icon-neutral"><i class="bi bi-tools"></i></span>
+                            <div>
+                                <div class="card-x-sub">Công cụ</div>
+                                <h2 class="card-x-title">Dọn dữ liệu demo</h2>
+                            </div>
+                        </div>
+                        <p class="scenario-desc">Dùng trước buổi thuyết trình hoặc khi muốn chạy lại từ đầu.</p>
+                        <ul class="tool-list">
+                            <li>
+                                <div><div class="mono fw-bold">order.queue</div><small><span id="toolOrderReady">0</span> tin đang chờ</small></div>
+                                <button class="btn-x btn-soft btn-sm-x" type="button" data-purge="order.queue"><i class="bi bi-eraser"></i> Purge</button>
+                            </li>
+                            <li>
+                                <div><div class="mono fw-bold">order.dlq</div><small><span id="toolDlqReady">0</span> tin lỗi</small></div>
+                                <button class="btn-x btn-soft btn-sm-x" type="button" data-purge="order.dlq"><i class="bi bi-eraser"></i> Purge</button>
+                            </li>
+                            <li>
+                                <div><div class="fw-bold">Bộ nhớ chống trùng</div><small>Danh sách mã đơn đã xử lý</small></div>
+                                <button class="btn-x btn-soft btn-sm-x" type="button" data-action="reset-processed"><i class="bi bi-arrow-counterclockwise"></i> Xoá</button>
+                            </li>
+                            <li>
+                                <div><div class="mono fw-bold">notification.queue</div><small id="toolLegacy">Queue của bản cũ</small></div>
+                                <button class="btn-x btn-soft btn-sm-x" type="button" data-action="delete-legacy"><i class="bi bi-trash3"></i> Xoá</button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-7">
+                <div class="card-x">
+                    <div class="card-x-header flex-wrap">
+                        <span class="card-x-icon"><i class="bi bi-activity"></i></span>
+                        <div>
+                            <h2 class="card-x-title">Nhật ký sự kiện</h2>
+                            <div class="card-x-sub">Thời gian thực qua Server-Sent Events</div>
+                        </div>
+                        <button id="btnClearLog" class="icon-btn ms-auto" type="button" title="Xoá nhật ký"><i class="bi bi-trash3"></i></button>
+                    </div>
+                    <div class="filter-row">
+                        <button class="chip-btn active" type="button" data-filter="all">Tất cả</button>
+                        <button class="chip-btn" type="button" data-filter="orders">Đơn hàng</button>
+                        <button class="chip-btn" type="button" data-filter="errors">Lỗi &amp; DLQ</button>
+                        <button class="chip-btn" type="button" data-filter="notify">Thông báo</button>
+                        <button class="chip-btn" type="button" data-filter="system">Hệ thống</button>
+                    </div>
+                    <ol id="eventLog" class="log-list" data-filter="all">
+                        <li class="log-empty"><i class="bi bi-inbox"></i>Chưa có sự kiện. Chọn một kịch bản để bắt đầu.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
 </div>
 
-<script>
-    let isPausedState = false;
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
-    function resetPipeline() {
-        document.querySelectorAll('.pipeline-node').forEach(n => {
-            if (!isPausedState) {
-                n.className = 'pipeline-node';
-            }
-        });
-        if (!isPausedState) {
-            document.getElementById('consumerTitle').innerText = '4. CONSUMER';
-            document.getElementById('consumerSub').innerText = 'Xử lý ngầm';
-            document.getElementById('consumerIcon').className = 'bi bi-cpu-fill fs-2 text-info';
-        }
-    }
-
-    function updateStatus(html, type) {
-        const banner = document.getElementById('giantStatusBanner');
-        const text = document.getElementById('giantStatusText');
-        text.innerHTML = html;
-
-        if (type === 'success') {
-            banner.style.borderLeftColor = '#22c55e';
-            banner.style.backgroundColor = '#064e3b';
-        } else if (type === 'error') {
-            banner.style.borderLeftColor = '#ef4444';
-            banner.style.backgroundColor = '#7f1d1d';
-        } else if (type === 'fanout') {
-            banner.style.borderLeftColor = '#06b6d4';
-            banner.style.backgroundColor = '#164e63';
-        } else if (type === 'bulk') {
-            banner.style.borderLeftColor = '#eab308';
-            banner.style.backgroundColor = '#713f12';
-        } else if (type === 'paused') {
-            banner.style.borderLeftColor = '#f59e0b';
-            banner.style.backgroundColor = '#78350f';
-        }
-    }
-
-    function appendLog(tag, color, msg) {
-        const box = document.getElementById('consoleLog');
-        const time = new Date().toLocaleTimeString();
-        const div = document.createElement('div');
-        div.className = 'console-item';
-        div.innerHTML = `<span class="text-secondary">[${time}]</span> <span class="badge ${color} me-1">${tag}</span> <span>${msg}</span>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
-
-    function clearConsole() {
-        document.getElementById('consoleLog').innerHTML = '<div class="text-secondary">[HỆ THỐNG] Đã làm mới nhật ký.</div>';
-    }
-
-    // Tạm Dừng / Khôi Phục Consumer
-    function togglePause(pause) {
-        isPausedState = pause;
-        const endpoint = pause ? '/api/pause-consumer' : '/api/resume-consumer';
-        
-        fetch(endpoint, { method: 'POST' })
-            .then(res => res.text())
-            .then(data => {
-                if (pause) {
-                    document.getElementById('consumerBadgeStatus').className = 'badge bg-danger px-3 py-2';
-                    document.getElementById('consumerBadgeStatus').innerText = 'Trạng thái Consumer: ĐÃ TẠM DỪNG (Mô phỏng sập)';
-                    document.getElementById('nodeConsumer').className = 'pipeline-node active-paused';
-                    document.getElementById('consumerTitle').innerText = 'CONSUMER (TẮT)';
-                    document.getElementById('consumerSub').innerText = 'Đang dừng xử lý';
-                    updateStatus(`🛑 [MÔ PHỎNG SỰ CỐ] Consumer đã bị TẠM DỪNG! Bây giờ các đơn hàng gửi vào sẽ **NẰM YÊN TRONG QUEUE** để bạn tha hồ chỉ tay giải thích!`, 'paused');
-                    appendLog('SERVICE_DOWN', 'bg-danger', 'Đã tạm dừng Consumer. Hàng đợi sẽ tích lũy tin nhắn.');
-                } else {
-                    document.getElementById('consumerBadgeStatus').className = 'badge bg-success px-3 py-2';
-                    document.getElementById('consumerBadgeStatus').innerText = 'Trạng thái Consumer: ĐANG HOẠT ĐỘNG (Xử lý 2s/đơn)';
-                    document.getElementById('nodeConsumer').className = 'pipeline-node';
-                    document.getElementById('consumerTitle').innerText = '4. CONSUMER';
-                    document.getElementById('consumerSub').innerText = 'Xử lý ngầm';
-                    updateStatus(`🟢 [PHỤC HỒI] Consumer đã sống lại! Hệ thống bắt đầu rút dần các đơn hàng tồn đọng trong queue về 0!`, 'success');
-                    appendLog('SERVICE_UP', 'bg-success', 'Consumer đã phục hồi. Đang giải phóng các tin tồn đọng.');
-                }
-            });
-    }
-
-    // 1. Gửi Đơn Hàng (Đơn thường hoặc Đơn lỗi)
-    function sendOrder(isError) {
-        resetPipeline();
-        const code = (isError ? "ERR_" : "ORD_") + Math.floor(1000 + Math.random() * 9000);
-        
-        document.getElementById('nodeProducer').classList.add(isError ? 'active-error' : 'active-success');
-        document.getElementById('nodeExchange').classList.add(isError ? 'active-error' : 'active-success');
-        document.getElementById('exchangeLabel').innerText = isError ? 'order.direct.exchange (Lỗi)' : 'order.direct.exchange';
-        document.getElementById('queueLabel').innerText = 'order.queue';
-
-        if (!isError) {
-            updateStatus(`⏳ [ĐANG GỬI] Đơn hàng <strong>${code}</strong> đã vào <code>order.queue</code>! Consumer đang xử lý (2s)...`, 'success');
-            appendLog('DIRECT', 'bg-success', `Gửi đơn ${code} qua Direct Exchange -> order.queue`);
-
-            setTimeout(() => {
-                document.getElementById('nodeQueue').classList.add('active-success');
-                if (!isPausedState) document.getElementById('nodeConsumer').classList.add('active-success');
-            }, 300);
-
-            fetch(`/api/send-order?code=${code}&error=false`)
-                .then(res => res.text())
-                .then(data => {
-                    setTimeout(() => {
-                        if (!isPausedState) {
-                            updateStatus(`✅ [THÀNH CÔNG] Đơn <strong>${code}</strong> đã được Consumer xử lý xong và gửi ACK xóa tin!`, 'success');
-                            appendLog('SUCCESS', 'bg-success', `Phản hồi Backend: ${data}`);
-                        }
-                    }, 2000);
-                });
-        } else {
-            updateStatus(`⚠️ [GIẢ LẬP LỖI] Đơn <strong>${code}</strong> kích hoạt lỗi! Consumer đang Retry 3 lần liên tiếp...`, 'error');
-            appendLog('RETRY', 'bg-danger', `Gửi đơn lỗi ${code} -> Kích hoạt Spring Retry x3`);
-
-            setTimeout(() => {
-                document.getElementById('nodeQueue').classList.add('active-error');
-            }, 300);
-
-            fetch(`/api/send-order?code=${code}&error=true`)
-                .then(res => res.text())
-                .then(data => {
-                    setTimeout(() => {
-                        document.getElementById('nodeConsumer').classList.add('active-error');
-                        document.getElementById('consumerTitle').innerText = 'DEAD LETTER QUEUE';
-                        document.getElementById('consumerSub').innerText = 'order.dlq (Đã cách ly)';
-                        document.getElementById('consumerIcon').className = 'bi bi-shield-fill-x fs-2 text-danger';
-
-                        updateStatus(`🚨 [ĐÃ VÀO DLQ] Sau 3 lần Retry thất bại, đơn <strong>${code}</strong> đã được chuyển sang <code>order.dlq</code> an toàn!`, 'error');
-                        appendLog('DLQ_SAVED', 'bg-danger', `Gói tin lỗi ${code} đã nằm an toàn trong order.dlq`);
-                    }, 3500);
-                });
-        }
-    }
-
-    function setAndSendBulk(n) {
-        document.getElementById('bulkCountInput').value = n;
-        sendCustomBulk();
-    }
-
-    function sendCustomBulk() {
-        const input = document.getElementById('bulkCountInput');
-        let count = parseInt(input.value) || 100;
-        if (count < 1) count = 10;
-        if (count > 5000) count = 5000;
-        sendBulk(count);
-    }
-
-    // 2. Bắn Dồn N Đơn (Bulk Test)
-    function sendBulk(count) {
-        resetPipeline();
-        document.getElementById('nodeProducer').classList.add('active-success');
-        document.getElementById('nodeExchange').classList.add('active-success');
-        document.getElementById('nodeQueue').classList.add('active-success');
-        document.getElementById('exchangeLabel').innerText = `Bulk Orders x${count}`;
-        document.getElementById('queueLabel').innerText = 'order.queue (Đang tích lũy)';
-
-        if (isPausedState) {
-            updateStatus(`🚀 [DỒN HÀNG ĐỢI] Đã bắn liên tiếp ${count} đơn! Vì Consumer đang TẠM DỪNG, **cột Ready trên Dashboard sẽ hiện số ${count} ĐỨNG IM VĨNH VIỄN** để bạn chỉ tay giải thích!`, 'bulk');
-        } else {
-            updateStatus(`🚀 [DỒN HÀNG ĐỢI] Đã bắn liên tiếp ${count} đơn! Hãy nhìn sang <strong>RabbitMQ Dashboard (:15672)</strong>: Cột Total đang dồn lên ${count} và đếm lùi trong 20s!`, 'bulk');
-        }
-        appendLog('BULK_TEST', 'bg-warning text-dark', `Bắn dồn ${count} đơn hàng liên tiếp vào order.queue`);
-
-        fetch(`/api/bulk-orders?count=${count}`)
-            .then(res => res.text())
-            .then(data => {
-                appendLog('BULK_SENT', 'bg-warning text-dark', data);
-            });
-    }
-
-    // 3. Phát Thanh Fanout
-    function sendBroadcast() {
-        resetPipeline();
-        document.getElementById('nodeProducer').classList.add('active-fanout');
-        document.getElementById('nodeExchange').classList.add('active-fanout');
-        document.getElementById('nodeQueue').classList.add('active-fanout');
-        document.getElementById('nodeConsumer').classList.add('active-fanout');
-        document.getElementById('exchangeLabel').innerText = 'system.fanout.exchange';
-        document.getElementById('queueLabel').innerText = 'Tất cả Queue liên kết';
-
-        const msg = "Bảo trì hệ thống lúc 24:00!";
-        updateStatus(`📢 [BROADCAST] Đã phát thanh tin nhắn: <em>"${msg}"</em> tới toàn bộ các hàng đợi!`, 'fanout');
-        appendLog('FANOUT', 'bg-info text-dark', `Broadcast tin nhắn: "${msg}"`);
-
-        fetch(`/api/broadcast?msg=${encodeURIComponent(msg)}`)
-            .then(res => res.text())
-            .then(data => {
-                appendLog('FANOUT_OK', 'bg-info text-dark', data);
-            });
-    }
-</script>
-
+<script src="js/app.js"></script>
 </body>
 </html>

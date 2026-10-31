@@ -1,0 +1,12 @@
+# Khởi động RabbitMQ cho demo: docker compose up -d
+# Management UI: http://localhost:15672 (seminar / seminar123)
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-seminar
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: seminar
+      RABBITMQ_DEFAULT_PASS: seminar123

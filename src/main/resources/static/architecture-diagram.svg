@@ -1,214 +1,151 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="100%" height="100%" style="background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 50%, #f5f9ff 100%); font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1290 770" width="100%" role="img" aria-label="Kiến trúc demo RabbitMQ">
+  <style>
+    text { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; fill: #1f2328; }
+    .title { font-size: 22px; font-weight: 600; }
+    .subtitle { font-size: 13px; fill: #656d76; }
+    .box { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.5; }
+    .box-ex { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
+    .box-note { fill: none; stroke: #d0d7de; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .broker { fill: #fbfbfc; stroke: #8c959f; stroke-width: 1.5; stroke-dasharray: 8 6; }
+    .sep { stroke: #e1e4e8; stroke-width: 1; }
+    .kind { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; fill: #656d76; }
+    .kind-dl { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; fill: #cf222e; }
+    .name { font-size: 14px; font-weight: 600; font-family: Consolas, 'Cascadia Mono', monospace; }
+    .h { font-size: 15px; font-weight: 600; }
+    .t { font-size: 12.5px; fill: #424a53; }
+    .mono { font-size: 11.5px; font-family: Consolas, 'Cascadia Mono', monospace; fill: #424a53; }
+    .label { font-size: 11px; fill: #656d76; }
+    .label-dl { font-size: 11px; fill: #cf222e; }
+    .flow { fill: none; stroke: #57606a; stroke-width: 1.6; }
+    .dead { fill: none; stroke: #cf222e; stroke-width: 1.6; stroke-dasharray: 6 4; }
+    .hint { fill: none; stroke: #8c959f; stroke-width: 1.2; stroke-dasharray: 3 3; }
+  </style>
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0284c7" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </linearGradient>
-    <linearGradient id="cardGradProducer" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#f0f9ff" />
-    </linearGradient>
-    <linearGradient id="cardGradExchange" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#fdf4ff" />
-    </linearGradient>
-    <linearGradient id="cardGradQueue" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#ecfdf5" />
-    </linearGradient>
-    <linearGradient id="cardGradDLQ" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#fff1f2" />
-    </linearGradient>
-    <linearGradient id="cardGradConsumer" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#f8fafc" />
-    </linearGradient>
-
-    <!-- Filters & Shadows -->
-    <filter id="cardShadow" x="-10%" y="-10%" width="125%" height="125%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.08" />
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.04" />
-    </filter>
-    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#10b981" flood-opacity="0.3" />
-    </filter>
-
-    <!-- Arrow Markers -->
-    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#57606a"/>
     </marker>
-    <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#8b5cf6" />
-    </marker>
-    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
-    </marker>
-    <marker id="arrowRed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
-    </marker>
-    <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+    <marker id="arrowDead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#cf222e"/>
     </marker>
   </defs>
 
-  <!-- Title Section -->
-  <text x="80" y="70" font-size="34" font-weight="800" fill="#1e3a8a" letter-spacing="-0.5">SƠ ĐỒ KIẾN TRÚC HỆ THỐNG DEMO (SPRING BOOT &amp; RABBITMQ)</text>
-  <text x="80" y="105" font-size="17" font-weight="500" fill="#64748b">Mô phỏng luồng xử lý đơn hàng bất đồng bộ, phát thanh đa kênh và bảo toàn dữ liệu sự cố với Dead Letter Queue</text>
+  <rect width="1290" height="770" fill="#ffffff"/>
 
-  <!-- Big RabbitMQ Broker Container Boundary -->
-  <rect x="420" y="140" width="760" height="710" rx="24" fill="#ffffff" fill-opacity="0.6" stroke="#93c5fd" stroke-width="2" stroke-dasharray="8 6" filter="url(#cardShadow)" />
-  <rect x="445" y="155" width="220" height="34" rx="8" fill="#e0f2fe" />
-  <text x="460" y="178" font-size="14" font-weight="700" fill="#0369a1" letter-spacing="0.5">RABBITMQ BROKER (:5672)</text>
+  <text class="title" x="30" y="46">Kiến trúc demo RabbitMQ</text>
+  <text class="subtitle" x="30" y="70">Spring Boot app vừa là producer vừa là consumer; broker định tuyến qua 3 exchange tới 5 queue.</text>
 
-  <!-- ==================== COLUMN 1: PRODUCER ==================== -->
-  <!-- Web UI Box -->
-  <g filter="url(#cardShadow)">
-    <rect x="70" y="210" width="280" height="230" rx="18" fill="url(#cardGradProducer)" stroke="#bae6fd" stroke-width="2" />
-    <rect x="70" y="210" width="280" height="48" rx="18" fill="#0284c7" />
-    <rect x="70" y="240" width="280" height="18" fill="#0284c7" />
-    <text x="210" y="242" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">PRODUCER (GỬI ĐƠN HÀNG)</text>
-    
-    <text x="95" y="285" font-size="15" font-weight="700" fill="#0f172a">Web Test UI (:8080)</text>
-    <text x="95" y="308" font-size="13" fill="#475569">Giao diện điều khiển trung tâm</text>
-    
-    <line x1="95" y1="325" x2="325" y2="325" stroke="#e2e8f0" stroke-width="1.5" />
-    
-    <text x="95" y="350" font-size="13" font-weight="600" fill="#0369a1">Spring Boot Controller API:</text>
-    <text x="95" y="375" font-size="12" font-family="Consolas, monospace" fill="#334155">• POST /api/send-order</text>
-    <text x="95" y="398" font-size="12" font-family="Consolas, monospace" fill="#334155">• POST /api/broadcast</text>
-    <text x="95" y="420" font-size="12" font-family="Consolas, monospace" fill="#334155">• POST /api/bulk-orders</text>
-  </g>
+  <!-- Broker -->
+  <rect class="broker" x="310" y="100" width="650" height="600" rx="12"/>
+  <text class="kind" x="326" y="124">RABBITMQ BROKER · localhost:5672</text>
 
-  <!-- ==================== COLUMN 2: EXCHANGES ==================== -->
-  <!-- Direct Exchange -->
-  <g filter="url(#cardShadow)">
-    <rect x="460" y="220" width="280" height="150" rx="16" fill="url(#cardGradExchange)" stroke="#c084fc" stroke-width="2" />
-    <rect x="480" y="238" width="130" height="24" rx="6" fill="#f3e8ff" />
-    <text x="545" y="255" font-size="12" font-weight="700" fill="#7e22ce" text-anchor="middle">DIRECT EXCHANGE</text>
-    
-    <text x="480" y="292" font-size="17" font-weight="800" fill="#581c87">order.exchange</text>
-    <text x="480" y="318" font-size="13" fill="#6b21a8">Định tuyến chính xác 1 - 1</text>
-    <text x="480" y="342" font-size="12" font-weight="600" fill="#9333ea">Routing Key: <tspan fill="#d97706" font-family="Consolas">order.created</tspan></text>
-  </g>
+  <!-- Producer -->
+  <rect class="box" x="30" y="150" width="250" height="450" rx="8"/>
+  <text class="kind" x="46" y="174">PRODUCER</text>
+  <text class="h" x="46" y="198">Spring Boot app</text>
+  <text class="t" x="46" y="218">localhost:8080 · giao diện demo</text>
+  <line class="sep" x1="46" y1="236" x2="264" y2="236"/>
+  <text class="kind" x="46" y="260">REST API</text>
+  <text class="mono" x="46" y="282">POST /api/orders</text>
+  <text class="mono" x="46" y="302">POST /api/orders/bulk</text>
+  <text class="mono" x="46" y="322">POST /api/notifications/broadcast</text>
+  <text class="mono" x="46" y="342">POST /api/consumer/stop|start</text>
+  <line class="sep" x1="46" y1="362" x2="264" y2="362"/>
+  <text class="kind" x="46" y="386">GỬI MESSAGE</text>
+  <text class="t" x="46" y="408">OrderProducer → RabbitTemplate</text>
+  <text class="t" x="46" y="428">Payload JSON (Jackson)</text>
+  <text class="t" x="46" y="448">messageId = orderCode</text>
+  <line class="sep" x1="46" y1="468" x2="264" y2="468"/>
+  <text class="kind" x="46" y="492">THEO DÕI</text>
+  <text class="t" x="46" y="514">GET /api/monitor/stats</text>
+  <text class="t" x="46" y="534">GET /api/monitor/events (SSE)</text>
+  <text class="label" x="46" y="580">Consumer chạy cùng app (cột bên phải)</text>
 
-  <!-- Fanout Exchange -->
-  <g filter="url(#cardShadow)">
-    <rect x="460" y="420" width="280" height="145" rx="16" fill="url(#cardGradExchange)" stroke="#c084fc" stroke-width="2" />
-    <rect x="480" y="438" width="140" height="24" rx="6" fill="#f3e8ff" />
-    <text x="550" y="455" font-size="12" font-weight="700" fill="#7e22ce" text-anchor="middle">FANOUT EXCHANGE</text>
-    
-    <text x="480" y="492" font-size="17" font-weight="800" fill="#581c87">broadcast.exchange</text>
-    <text x="480" y="518" font-size="13" fill="#6b21a8">Phát thanh không cần Key</text>
-    <text x="480" y="542" font-size="12" fill="#7e22ce">Copy gửi tới mọi Queue kết nối</text>
-  </g>
+  <!-- Hàng 1: Direct exchange -> order.queue -> OrderConsumer -->
+  <rect class="box-ex" x="340" y="150" width="240" height="84" rx="8"/>
+  <text class="kind" x="356" y="172">DIRECT EXCHANGE</text>
+  <text class="name" x="356" y="195">order.direct.exchange</text>
+  <text class="mono" x="356" y="218">key: order.created</text>
 
-  <!-- Dead Letter Exchange (DLX) -->
-  <g filter="url(#cardShadow)">
-    <rect x="460" y="650" width="280" height="150" rx="16" fill="url(#cardGradDLQ)" stroke="#fca5a5" stroke-width="2" />
-    <rect x="480" y="668" width="160" height="24" rx="6" fill="#fee2e2" />
-    <text x="560" y="685" font-size="12" font-weight="700" fill="#b91c1c" text-anchor="middle">DEAD LETTER EXCHANGE</text>
-    
-    <text x="480" y="722" font-size="17" font-weight="800" fill="#991b1b">order.dlx</text>
-    <text x="480" y="748" font-size="13" fill="#b91c1c">Bộ gom thư chết khi gặp lỗi</text>
-    <text x="480" y="772" font-size="12" font-weight="600" fill="#dc2626">Routing Key: <tspan font-family="Consolas">order.dlq.key</tspan></text>
-  </g>
+  <rect class="box" x="660" y="150" width="260" height="96" rx="8"/>
+  <text class="kind" x="676" y="172">QUEUE · DURABLE</text>
+  <text class="name" x="676" y="195">order.queue</text>
+  <text class="mono" x="676" y="216">DLX: order.dlx.exchange</text>
+  <text class="mono" x="676" y="234">DL key: order.dead</text>
 
-  <!-- ==================== COLUMN 3: QUEUES ==================== -->
-  <!-- Order Queue -->
-  <g filter="url(#cardShadow)">
-    <rect x="850" y="210" width="290" height="175" rx="16" fill="url(#cardGradQueue)" stroke="#86efac" stroke-width="2" />
-    <rect x="870" y="228" width="105" height="24" rx="6" fill="#dcfce7" />
-    <text x="922" y="245" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle">MAIN QUEUE</text>
-    
-    <text x="870" y="280" font-size="18" font-weight="800" fill="#14532d">order.queue</text>
-    <text x="870" y="306" font-size="13" fill="#166534">Chứa đơn hàng chờ xuất kho</text>
-    
-    <!-- Badges -->
-    <rect x="870" y="325" width="65" height="20" rx="4" fill="#dcfce7" />
-    <text x="902" y="339" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">Ready</text>
-    <rect x="945" y="325" width="85" height="20" rx="4" fill="#fef3c7" />
-    <text x="987" y="339" font-size="11" font-weight="700" fill="#b45309" text-anchor="middle">Unacked (250)</text>
-    <rect x="870" y="352" width="220" height="20" rx="4" fill="#f1f5f9" />
-    <text x="980" y="366" font-size="11" fill="#475569" text-anchor="middle">x-dead-letter-exchange: order.dlx</text>
-  </g>
+  <rect class="box" x="1000" y="150" width="260" height="166" rx="8"/>
+  <text class="kind" x="1016" y="172">CONSUMER</text>
+  <text class="h" x="1016" y="194">OrderConsumer</text>
+  <text class="mono" x="1016" y="214">@RabbitListener(order.queue)</text>
+  <text class="t" x="1016" y="240">• prefetch = 1, ACK tự động</text>
+  <text class="t" x="1016" y="260">• Chống trùng theo orderCode</text>
+  <text class="t" x="1016" y="280">• Retry 3 lần, cách 1 giây</text>
+  <text class="t" x="1016" y="300">• Hết retry → reject sang DLQ</text>
 
-  <!-- Notification Queue -->
-  <g filter="url(#cardShadow)">
-    <rect x="850" y="445" width="290" height="120" rx="16" fill="url(#cardGradQueue)" stroke="#86efac" stroke-width="2" />
-    <rect x="870" y="463" width="150" height="24" rx="6" fill="#dcfce7" />
-    <text x="945" y="480" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle">NOTIFICATION QUEUE</text>
-    
-    <text x="870" y="515" font-size="18" font-weight="800" fill="#14532d">notification.queue</text>
-    <text x="870" y="542" font-size="13" fill="#166534">Hàng đợi gửi Email / Tin nhắn SMS</text>
-  </g>
+  <path class="flow" d="M280 192 H336" marker-end="url(#arrow)"/>
+  <text class="label" x="308" y="184" text-anchor="middle">publish</text>
+  <path class="flow" d="M580 192 H656" marker-end="url(#arrow)"/>
+  <path class="flow" d="M920 192 H996" marker-end="url(#arrow)"/>
+  <text class="label" x="958" y="184" text-anchor="middle">deliver</text>
 
-  <!-- Dead Letter Queue (DLQ) -->
-  <g filter="url(#cardShadow)">
-    <rect x="850" y="650" width="290" height="150" rx="16" fill="url(#cardGradDLQ)" stroke="#fca5a5" stroke-width="2.5" />
-    <rect x="870" y="668" width="165" height="24" rx="6" fill="#fee2e2" />
-    <text x="952" y="685" font-size="12" font-weight="700" fill="#b91c1c" text-anchor="middle">DEAD LETTER QUEUE</text>
-    
-    <text x="870" y="722" font-size="18" font-weight="800" fill="#991b1b">order.dlq</text>
-    <text x="870" y="748" font-size="13" fill="#b91c1c">Vùng cách ly an toàn đơn hàng lỗi</text>
-    <text x="870" y="774" font-size="12" font-weight="600" fill="#dc2626">Lưu trữ để đối soát &amp; sửa thủ công</text>
-  </g>
+  <!-- Hàng 2: Dead letter -->
+  <rect class="box-ex" x="340" y="300" width="240" height="84" rx="8"/>
+  <text class="kind-dl" x="356" y="322">DEAD LETTER EXCHANGE</text>
+  <text class="name" x="356" y="345">order.dlx.exchange</text>
+  <text class="mono" x="356" y="368">key: order.dead</text>
 
-  <!-- ==================== COLUMN 4: CONSUMER ==================== -->
-  <g filter="url(#cardShadow)">
-    <rect x="1250" y="210" width="280" height="355" rx="18" fill="url(#cardGradConsumer)" stroke="#cbd5e1" stroke-width="2" />
-    <rect x="1250" y="210" width="280" height="48" rx="18" fill="#1e293b" />
-    <rect x="1250" y="240" width="280" height="18" fill="#1e293b" />
-    <text x="1390" y="242" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">CONSUMER (XỬ LÝ ĐƠN)</text>
+  <rect class="box" x="660" y="300" width="260" height="84" rx="8"/>
+  <text class="kind-dl" x="676" y="322">DEAD LETTER QUEUE</text>
+  <text class="name" x="676" y="345">order.dlq</text>
+  <text class="t" x="676" y="368">Không có consumer, tin lỗi nằm lại</text>
 
-    <text x="1275" y="285" font-size="16" font-weight="700" fill="#0f172a">OrderConsumer</text>
-    <text x="1275" y="308" font-size="12" font-family="Consolas, monospace" fill="#2563eb">@RabbitListener(order.queue)</text>
-    
-    <line x1="1275" y1="325" x2="1505" y2="325" stroke="#e2e8f0" stroke-width="1.5" />
-    
-    <!-- State 1: Success -->
-    <rect x="1275" y="345" width="230" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" />
-    <text x="1290" y="370" font-size="13" font-weight="700" fill="#15803d">Xử lý thành công</text>
-    <text x="1290" y="390" font-size="12" fill="#166534">Gửi ACK xác nhận -> Xóa tin</text>
+  <rect class="box-note" x="1000" y="324" width="260" height="56" rx="8"/>
+  <text class="t" x="1016" y="347">Kiểm tra trên Management UI:</text>
+  <text class="t" x="1016" y="367">Get messages → header x-death</text>
+  <path class="hint" d="M920 342 H996"/>
 
-    <!-- State 2: Retry & Error -->
-    <rect x="1275" y="420" width="230" height="125" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5" />
-    <text x="1290" y="445" font-size="13" font-weight="700" fill="#c2410c">Cơ chế chịu lỗi (Retry x3)</text>
-    <text x="1290" y="468" font-size="12" fill="#9a3412">• Thử lại tối đa đúng 3 lần</text>
-    <text x="1290" y="488" font-size="12" fill="#9a3412">• Delay 1000ms giữa mỗi lần</text>
-    <text x="1290" y="510" font-size="12" font-weight="700" fill="#b91c1c">Thất bại -> NACK (requeue=false)</text>
-    <text x="1290" y="530" font-size="11" fill="#7f1d1d">Tự động đẩy sang order.dlx</text>
-  </g>
+  <path class="dead" d="M680 246 C680 275, 560 270, 540 296" marker-end="url(#arrowDead)"/>
+  <text class="label-dl" x="694" y="276">reject (requeue=false)</text>
+  <path class="dead" d="M580 342 H656" marker-end="url(#arrowDead)"/>
 
-  <!-- ==================== CONNECTING ARROWS ==================== -->
-  <!-- 1. Producer -> Direct Exchange -->
-  <path d="M 350 280 L 450 280" fill="none" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowBlue)" />
-  <text x="400" y="270" font-size="12" font-weight="700" fill="#0284c7" text-anchor="middle">Đơn hàng</text>
+  <!-- Hàng 3: Fanout -->
+  <rect class="box-ex" x="340" y="520" width="240" height="84" rx="8"/>
+  <text class="kind" x="356" y="542">FANOUT EXCHANGE</text>
+  <text class="name" x="356" y="565">system.fanout.exchange</text>
+  <text class="t" x="356" y="588">Không dùng routing key</text>
 
-  <!-- 2. Producer -> Fanout Exchange -->
-  <path d="M 350 370 C 390 370, 400 480, 450 480" fill="none" stroke="#8b5cf6" stroke-width="2.5" marker-end="url(#arrowPurple)" />
-  <text x="390" y="435" font-size="12" font-weight="700" fill="#8b5cf6" text-anchor="middle">Broadcast</text>
+  <rect class="box" x="660" y="446" width="260" height="56" rx="8"/>
+  <text class="kind" x="676" y="466">QUEUE</text>
+  <text class="name" x="676" y="488">notification.email.queue</text>
 
-  <!-- 3. Direct Exchange -> Main Queue -->
-  <path d="M 740 280 L 840 280" fill="none" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowBlue)" />
-  <text x="790" y="270" font-size="11" font-weight="600" fill="#0284c7" text-anchor="middle">Binding</text>
+  <rect class="box" x="660" y="534" width="260" height="56" rx="8"/>
+  <text class="kind" x="676" y="554">QUEUE</text>
+  <text class="name" x="676" y="576">notification.sms.queue</text>
 
-  <!-- 4. Fanout Exchange -> Main Queue & Notification Queue -->
-  <path d="M 740 470 C 780 470, 790 340, 840 340" fill="none" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrowPurple)" />
-  <path d="M 740 495 L 840 495" fill="none" stroke="#8b5cf6" stroke-width="2.5" marker-end="url(#arrowPurple)" />
+  <rect class="box" x="660" y="622" width="260" height="56" rx="8"/>
+  <text class="kind" x="676" y="642">QUEUE</text>
+  <text class="name" x="676" y="664">notification.audit.queue</text>
 
-  <!-- 5. Main Queue -> Consumer -->
-  <path d="M 1140 280 L 1240 280" fill="none" stroke="#10b981" stroke-width="3" marker-end="url(#arrowGreen)" />
-  <text x="1190" y="270" font-size="12" font-weight="700" fill="#10b981" text-anchor="middle">Push (TCP)</text>
+  <rect class="box" x="1000" y="408" width="260" height="270" rx="8"/>
+  <text class="kind" x="1016" y="430">CONSUMER</text>
+  <text class="h" x="1016" y="452">NotificationConsumer</text>
+  <text class="t" x="1016" y="478">email-service: gửi email</text>
+  <text class="label" x="1016" y="516">Mỗi service có queue riêng nên</text>
+  <text class="label" x="1016" y="532">đều nhận một bản sao của message</text>
+  <text class="t" x="1016" y="566">sms-service: gửi SMS</text>
+  <text class="t" x="1016" y="654">audit-service: ghi audit log</text>
 
-  <!-- 6. Consumer Error -> DLX -->
-  <path d="M 1275 530 C 1200 580, 800 600, 740 680" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrowRed)" />
-  <rect x="910" y="585" width="200" height="24" rx="6" fill="#fee2e2" />
-  <text x="1010" y="602" font-size="11" font-weight="700" fill="#b91c1c" text-anchor="middle">Lỗi sau 3 lần Retry -> Chuyển vùng DLX</text>
+  <path class="flow" d="M280 562 H336" marker-end="url(#arrow)"/>
+  <text class="label" x="308" y="554" text-anchor="middle">publish</text>
+  <path class="flow" d="M580 562 C620 562, 616 474, 656 474" marker-end="url(#arrow)"/>
+  <path class="flow" d="M580 562 H656" marker-end="url(#arrow)"/>
+  <path class="flow" d="M580 562 C620 562, 616 650, 656 650" marker-end="url(#arrow)"/>
+  <path class="flow" d="M920 474 H996" marker-end="url(#arrow)"/>
+  <path class="flow" d="M920 562 H996" marker-end="url(#arrow)"/>
+  <path class="flow" d="M920 650 H996" marker-end="url(#arrow)"/>
 
-  <!-- 7. DLX -> DLQ -->
-  <path d="M 740 725 L 840 725" fill="none" stroke="#ef4444" stroke-width="3" marker-end="url(#arrowRed)" />
-  <text x="790" y="715" font-size="11" font-weight="700" fill="#dc2626" text-anchor="middle">Cách ly</text>
-
+  <!-- Chú thích -->
+  <path class="flow" d="M30 738 H70" marker-end="url(#arrow)"/>
+  <text class="label" x="80" y="742">Luồng message</text>
+  <path class="dead" d="M200 738 H240" marker-end="url(#arrowDead)"/>
+  <text class="label" x="250" y="742">Dead-letter khi xử lý thất bại</text>
 </svg>

@@ -37,4 +37,21 @@
             <version>2.3.0</version>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <!-- Đóng gói jar chạy được: java -jar target/RabbitMQSeminar-0.0.1-SNAPSHOT.jar -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

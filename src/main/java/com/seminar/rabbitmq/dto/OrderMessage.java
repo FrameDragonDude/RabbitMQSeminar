@@ -1,26 +1,26 @@
 package com.seminar.rabbitmq.dto;
 
-import java.io.Serializable;
+/**
+ * Payload gửi qua RabbitMQ (serialize dạng JSON).
+ */
+public class OrderMessage {
 
-public class OrderMessage implements Serializable {
-    private static final long serialVersionUID = 1L;
+    /** Tiền tố mã đơn của bài test tải hàng loạt: consumer xử lý nhanh hơn để thấy queue rút dần. */
+    public static final String BULK_PREFIX = "BULK-";
 
     private String orderCode;
     private double amount;
     private boolean simulateError;
 
-    // Constructor không tham số
     public OrderMessage() {
     }
 
-    // Constructor đầy đủ tham số
     public OrderMessage(String orderCode, double amount, boolean simulateError) {
         this.orderCode = orderCode;
         this.amount = amount;
         this.simulateError = simulateError;
     }
 
-    // Getters and Setters
     public String getOrderCode() {
         return orderCode;
     }

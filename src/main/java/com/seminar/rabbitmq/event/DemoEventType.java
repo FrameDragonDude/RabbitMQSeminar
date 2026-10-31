@@ -1,0 +1,18 @@
+package com.seminar.rabbitmq.event;
+
+public enum DemoEventType {
+    ORDER_SENT,
+    BULK_SENT,
+    BROADCAST_SENT,
+    PROCESSING,
+    SUCCESS,
+    FAILED,
+    DEAD_LETTERED,
+    INVALID_MESSAGE,
+    DUPLICATE_SKIPPED,
+    IN_PROGRESS,
+    NOTIFICATION_RECEIVED,
+    CONSUMER_STOPPED,
+    CONSUMER_STARTED,
+    QUEUE_PURGED
+}

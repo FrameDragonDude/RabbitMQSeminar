@@ -1,0 +1,814 @@
+{
+  "info": {
+    "name": "RabbitMQ Seminar Demo",
+    "description": "Demo RabbitMQ bằng Postman: direct exchange, chống trùng, retry + DLQ, fanout, san tải, consumer sập.\n\n- Chạy lần lượt từng thư mục, hoặc cả collection bằng **Runner** (các bước chờ đã có sẵn trong script).\n- Kết quả `/api/tracking/...`, `/api/monitor/stats` và tin trong DLQ có tab **Visualize** dạng bảng.\n- Các request \"RabbitMQ API\" gọi thẳng Management HTTP API (cổng 15672) để đối chiếu với broker.\n- Đổi `baseUrl`, `rabbitUser`, `rabbitPass` trong tab Variables nếu cần.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Chuẩn bị",
+      "description": "Chạy trước buổi demo để đưa hệ thống về trạng thái sạch.",
+      "item": [
+        {
+          "name": "Trạng thái hệ thống",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const stats = pm.response.json();",
+                  "const orderQueue = stats.queues.find(q => q.queue === 'order.queue');",
+                  "console.log('order.queue: Ready =', orderQueue.ready, ', consumers =', orderQueue.consumers);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/monitor/stats",
+            "description": "Consumer, số đơn đã xử lý, số tin Ready/Consumers của từng queue. Mở tab **Visualize** để xem dạng bảng."
+          }
+        },
+        {
+          "name": "Bật consumer (nếu đang dừng)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/consumer/start"
+          }
+        },
+        {
+          "name": "Dọn order.dlq",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/queues/order.dlq/purge"
+          }
+        },
+        {
+          "name": "Xoá queue cũ notification.queue",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/queues/legacy"
+          }
+        },
+        {
+          "name": "Xoá bộ nhớ chống trùng",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/processed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Direct exchange",
+      "description": "Producer publish đơn với routing key `order.created`, direct exchange chuyển đúng vào `order.queue`, consumer xử lý 2 giây rồi ACK.",
+      "item": [
+        {
+          "name": "Gửi đơn hàng",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('orderCode', 'ORD-' + Date.now().toString().slice(-6));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trả về trackingUrl', () => pm.expect(pm.response.json().trackingUrl).to.include(pm.collectionVariables.get('orderCode')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "description": "Mã đơn tự sinh ở Pre-request Script và lưu vào biến `orderCode`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderCode\": \"{{orderCode}}\",\n  \"amount\": 45000,\n  \"simulateError\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Xem hành trình đơn (chờ 2,5 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 2500);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.response.json();",
+                  "pm.test('Đơn đã xử lý xong (DONE)', () => pm.expect(t.status).to.eql('DONE'));",
+                  "pm.test('Xử lý đúng 1 lần', () => pm.expect(t.processedTimes).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tracking/{{orderCode}}",
+            "description": "Timeline: ORDER_SENT → PROCESSING → SUCCESS. Mở tab **Visualize**."
+          }
+        },
+        {
+          "name": "RabbitMQ API: thống kê order.queue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Queue có cấu hình DLX', () => pm.expect(pm.response.json().arguments['x-dead-letter-exchange']).to.eql('order.dlx.exchange'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rabbitUrl}}/queues/{{vhost}}/order.queue?columns=name,messages_ready,messages_unacknowledged,consumers,arguments,message_stats.publish,message_stats.ack",
+            "description": "Gọi thẳng Management HTTP API của RabbitMQ (không qua Spring). Thấy `arguments` có `x-dead-letter-exchange`.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{rabbitUser}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{rabbitPass}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Chống xử lý trùng",
+      "description": "Chạy sau kịch bản 1. Gửi lại đúng mã đơn đã xử lý: consumer ACK nhưng không xử lý lại.",
+      "item": [
+        {
+          "name": "Gửi lại đúng mã đơn vừa gửi",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderCode\": \"{{orderCode}}\",\n  \"amount\": 45000,\n  \"simulateError\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Xem hành trình (chờ 1 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.response.json();",
+                  "pm.test('Vẫn chỉ xử lý 1 lần', () => pm.expect(t.processedTimes).to.eql(1));",
+                  "pm.test('Tin trùng đã bị bỏ qua', () => pm.expect(t.duplicatesSkipped).to.be.at.least(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tracking/{{orderCode}}",
+            "description": "Có thêm DUPLICATE_SKIPPED, `processedTimes` vẫn là 1."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Retry & Dead Letter Queue",
+      "description": "Consumer ném exception, Spring Retry xử lý tổng cộng 3 lần (cách 1 giây), hết lượt thì reject → order.dlx.exchange → order.dlq.",
+      "item": [
+        {
+          "name": "Gửi đơn lỗi",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('errorCode', 'ERR-' + Date.now().toString().slice(-6));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderCode\": \"{{errorCode}}\",\n  \"amount\": 45000,\n  \"simulateError\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Xem hành trình: đang retry (chờ 3 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 3000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Đang xử lý / retry', () => pm.expect(pm.response.json().status).to.be.oneOf(['PROCESSING', 'RETRYING']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tracking/{{errorCode}}"
+          }
+        },
+        {
+          "name": "Xem hành trình: đã vào DLQ (chờ 7 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 7000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.response.json();",
+                  "pm.test('Đã vào DLQ', () => pm.expect(t.status).to.eql('DEAD_LETTERED'));",
+                  "pm.test('Đã xử lý đủ 3 lần', () => pm.expect(t.attempts).to.eql(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tracking/{{errorCode}}",
+            "description": "FAILED 1/3, 2/3, 3/3 rồi DEAD_LETTERED."
+          }
+        },
+        {
+          "name": "RabbitMQ API: đọc tin trong order.dlq",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const messages = pm.response.json();",
+                  "const mine = messages.find(m => m.properties.message_id === pm.collectionVariables.get('errorCode'));",
+                  "pm.test('Tin lỗi nằm trong DLQ (trong 10 tin đầu)', () => pm.expect(mine).to.exist);",
+                  "pm.test('Có header x-death, reason = rejected', () => pm.expect(mine.properties.headers['x-death'][0].reason).to.eql('rejected'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{rabbitUrl}}/queues/{{vhost}}/order.dlq/get",
+            "description": "Đọc thử tin trong DLQ (tin vẫn được giữ lại). Header `x-death` cho biết lý do `rejected` và queue gốc. Mở tab **Visualize**.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": 10,\n  \"ackmode\": \"ack_requeue_true\",\n  \"encoding\": \"auto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{rabbitUser}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{rabbitPass}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Fanout exchange",
+      "description": "Một thông báo được sao chép tới cả 3 queue email, sms, audit.",
+      "item": [
+        {
+          "name": "Phát thông báo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('notificationId', pm.response.json().reference);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications/broadcast",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hệ thống bảo trì lúc 00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Xem service nào đã nhận (chờ 1 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cả 3 service đều nhận', () => pm.expect(pm.response.json().receivedBy).to.have.members(['email-service', 'sms-service', 'audit-service']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tracking/{{notificationId}}"
+          }
+        },
+        {
+          "name": "RabbitMQ API: các queue bind với fanout exchange",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const queues = pm.response.json().map(b => b.destination);",
+                  "console.log('Bind tới:', queues.join(', '));",
+                  "pm.test('Bind tới 3 queue thông báo', () => pm.expect(queues).to.include.members(['notification.email.queue', 'notification.sms.queue', 'notification.audit.queue']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rabbitUrl}}/exchanges/{{vhost}}/system.fanout.exchange/bindings/source",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{rabbitUser}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{rabbitPass}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. San tải hàng loạt",
+      "description": "Gửi dồn nhiều đơn, queue làm bộ đệm, consumer xử lý đều ~10 đơn/giây.",
+      "item": [
+        {
+          "name": "Gửi 300 đơn",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/bulk?count=300"
+          }
+        },
+        {
+          "name": "Trạng thái queue (bấm Send nhiều lần)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const stats = pm.response.json();",
+                  "const orderQueue = stats.queues.find(q => q.queue === 'order.queue');",
+                  "console.log('order.queue: Ready =', orderQueue.ready, ', consumers =', orderQueue.consumers);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/monitor/stats",
+            "description": "Bấm Send vài lần để thấy Ready của order.queue giảm dần. Mở tab **Visualize**."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Consumer sập / phục hồi",
+      "description": "Dừng listener giống service bị sập: tin dồn ở Ready, không mất. Bật lại thì xử lý tiếp.",
+      "item": [
+        {
+          "name": "Dừng consumer",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/consumer/stop"
+          }
+        },
+        {
+          "name": "Gửi 20 đơn khi consumer đang dừng",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/orders/bulk?count=20"
+          }
+        },
+        {
+          "name": "Kiểm tra: tin nằm ở Ready, 0 consumer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const stats = pm.response.json();",
+                  "const orderQueue = stats.queues.find(q => q.queue === 'order.queue');",
+                  "console.log('order.queue: Ready =', orderQueue.ready, ', consumers =', orderQueue.consumers);",
+                  "",
+                  "pm.test('order.queue không còn consumer', () => pm.expect(orderQueue.consumers).to.eql(0));",
+                  "pm.test('Tin dồn lại ở Ready', () => pm.expect(orderQueue.ready).to.be.at.least(20));",
+                  "pm.collectionVariables.set('readyWhileDown', orderQueue.ready);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/monitor/stats"
+          }
+        },
+        {
+          "name": "Bật lại consumer",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/consumer/start"
+          }
+        },
+        {
+          "name": "Kiểm tra: queue rút dần (chờ 3 giây)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Chờ consumer xử lý trước khi gửi request",
+                  "setTimeout(() => {}, 3000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const stats = pm.response.json();",
+                  "const orderQueue = stats.queues.find(q => q.queue === 'order.queue');",
+                  "console.log('order.queue: Ready =', orderQueue.ready, ', consumers =', orderQueue.consumers);",
+                  "",
+                  "pm.test('Consumer đã quay lại', () => pm.expect(orderQueue.consumers).to.eql(1));",
+                  "pm.test('Ready đang giảm', () => pm.expect(orderQueue.ready).to.be.below(Number(pm.collectionVariables.get('readyWhileDown'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/monitor/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Theo dõi thời gian thực (SSE)",
+      "description": "Mở request này ở một tab riêng: Postman hiển thị luồng sự kiện liên tục trong lúc chạy các kịch bản khác (Postman bản mới hỗ trợ Server-Sent Events).",
+      "item": [
+        {
+          "name": "Luồng sự kiện",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/monitor/events"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Hiển thị kết quả dạng bảng ở tab \"Visualize\" của Postman (3 màu: tím chàm, xám, đỏ)",
+          "const STYLE = '<style>body{font-family:Segoe UI,system-ui,sans-serif;color:#1e293b;padding:6px;font-size:13px}'",
+          "  + '.head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}'",
+          "  + '.pill{padding:3px 10px;border-radius:999px;font-weight:700;background:#eef2ff;color:#4f46e5}'",
+          "  + '.pill.bad{background:#fef2f2;color:#dc2626}.muted{color:#64748b}'",
+          "  + 'table{border-collapse:collapse;width:100%}td,th{padding:7px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}'",
+          "  + 'th{color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.05em}'",
+          "  + 'tr.bad td{color:#dc2626}.mono{font-family:Consolas,monospace}.num{text-align:right;font-weight:700}'",
+          "  + '.bar{height:8px;border-radius:4px;background:#4f46e5;min-width:2px}.bar.bad{background:#dc2626}</style>';",
+          "",
+          "const url = pm.request.url.toString();",
+          "const BAD = ['FAILED', 'DEAD_LETTERED', 'INVALID_MESSAGE', 'CONSUMER_STOPPED'];",
+          "",
+          "if (pm.response.code === 200 && url.includes('/api/tracking/')) {",
+          "  const data = pm.response.json();",
+          "  pm.visualizer.set(STYLE + `",
+          "    <div class=\"head\"><b class=\"mono\">{{reference}}</b>",
+          "      <span class=\"pill {{#if bad}}bad{{/if}}\">{{status}}</span><span class=\"muted\">{{summary}}</span></div>",
+          "    <table><tr><th>Thời gian</th><th>Sự kiện</th><th>Nguồn</th><th>Chi tiết</th></tr>",
+          "    {{#each events}}<tr class=\"{{#if bad}}bad{{/if}}\"><td class=\"mono\">{{time}}</td><td><b>{{type}}</b></td>",
+          "      <td>{{source}}</td><td>{{message}}</td></tr>{{/each}}</table>`, {",
+          "    ...data,",
+          "    bad: data.status === 'DEAD_LETTERED',",
+          "    events: data.events.map(e => ({ ...e, bad: BAD.includes(e.type) })),",
+          "  });",
+          "}",
+          "",
+          "if (pm.response.code === 200 && url.includes('/api/monitor/stats')) {",
+          "  const data = pm.response.json();",
+          "  const max = Math.max(1, ...data.queues.map(q => q.ready));",
+          "  pm.visualizer.set(STYLE + `",
+          "    <div class=\"head\"><span class=\"pill {{#unless consumerRunning}}bad{{/unless}}\">",
+          "      Consumer: {{#if consumerRunning}}đang chạy{{else}}đã dừng{{/if}}</span>",
+          "      <span class=\"muted\">Đã xử lý <b>{{processedOrders}}</b> đơn · Chặn <b>{{duplicateSkipped}}</b> tin trùng</span></div>",
+          "    <table><tr><th>Exchange</th><th>Routing key</th><th>Queue</th><th class=\"num\">Ready</th><th style=\"width:30%\"></th><th class=\"num\">Consumers</th></tr>",
+          "    {{#each queues}}<tr class=\"{{#if dlq}}bad{{/if}}\"><td class=\"mono\">{{exchange}}</td><td class=\"mono\">{{routingKey}}</td>",
+          "      <td class=\"mono\"><b>{{queue}}</b></td><td class=\"num\">{{ready}}</td>",
+          "      <td><div class=\"bar {{#if dlq}}bad{{/if}}\" style=\"width:{{width}}%\"></div></td><td class=\"num\">{{consumers}}</td></tr>{{/each}}",
+          "    </table>`, {",
+          "    ...data,",
+          "    queues: data.queues.map(q => ({ ...q, routingKey: q.routingKey || '—', dlq: q.queue === 'order.dlq', width: Math.round(q.ready / max * 100) })),",
+          "  });",
+          "}",
+          "",
+          "if (pm.response.code === 200 && url.endsWith('/get')) {",
+          "  const messages = pm.response.json().map(m => {",
+          "    const death = (m.properties.headers || {})['x-death'] || [];",
+          "    return {",
+          "      id: m.properties.message_id || '(không có)',",
+          "      payload: m.payload,",
+          "      reason: death.length ? death[0].reason : '—',",
+          "      from: death.length ? death[0].queue + ' via ' + death[0].exchange : '—',",
+          "    };",
+          "  });",
+          "  pm.visualizer.set(STYLE + `",
+          "    <div class=\"head\"><b>Tin đang nằm trong queue</b><span class=\"pill bad\">{{messages.length}} tin</span>",
+          "      <span class=\"muted\">đọc với ackmode=ack_requeue_true nên tin vẫn còn trong queue</span></div>",
+          "    <table><tr><th>message_id</th><th>x-death reason</th><th>Queue gốc</th><th>Payload</th></tr>",
+          "    {{#each messages}}<tr><td class=\"mono\"><b>{{id}}</b></td><td>{{reason}}</td><td class=\"mono\">{{from}}</td>",
+          "      <td class=\"mono\">{{payload}}</td></tr>{{/each}}</table>`, { messages });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "rabbitUrl",
+      "value": "http://localhost:15672/api"
+    },
+    {
+      "key": "vhost",
+      "value": "%2F"
+    },
+    {
+      "key": "rabbitUser",
+      "value": "seminar"
+    },
+    {
+      "key": "rabbitPass",
+      "value": "seminar123"
+    },
+    {
+      "key": "orderCode",
+      "value": ""
+    },
+    {
+      "key": "errorCode",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "readyWhileDown",
+      "value": ""
+    }
+  ]
+}
