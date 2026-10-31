@@ -1,6 +1,0 @@
-com\seminar\rabbitmq\consumer\OrderConsumer.class
-com\seminar\rabbitmq\producer\OrderProducer.class
-com\seminar\rabbitmq\config\RabbitMQConfig.class
-com\seminar\rabbitmq\controller\DemoController.class
-com\seminar\rabbitmq\RabbitMQSeminarApplication.class
-com\seminar\rabbitmq\dto\OrderMessage.class
